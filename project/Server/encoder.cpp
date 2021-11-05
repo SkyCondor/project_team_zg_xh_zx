@@ -29,10 +29,25 @@
 #define EP1(x) (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
+
+
+
+//LZW
+using namespace std;
+long len=0;
+long loc=0;
+map<string,long> dictionary;
+vector <long> result;
+#define MAX 100;
   
+//variable 
 int chunk_num = 0; 
 int offset = 0;
 unsigned char* file;
+int First_Index=0;
+int Last_Index=0;
+
+
 
 void handle_input(int argc, char* argv[], int* payload_size) {
 	int x;
@@ -70,8 +85,10 @@ void cdc(unsigned char *buff, unsigned int buff_size)
   for(int i=16; i < (buff_size-16); i+=1){ 
   	uint64_t hash = hash_func(buff,i); 
   	if((hash%MODULUS) == TARGET){ 
-           SHA_256();
+		   Last_Index = i;
+           SHA_256(First_Index,Last_Index);
            chunk_num++; 
+		   First_Index=Last_Index+1;
   	} 
   } 
 } 
@@ -89,8 +106,9 @@ static const WORD k[64] = {
 };
 
 
-void sha256(SHA256_CTX *ctx, const BYTE data[])
+void SHA_256( int First_Index, int Last_Index, SHA256_CTX *ctx, const BYTE data[])
 {
+
 	WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
 	for (i = 0, j = 0; i < 16; ++i, j += 4)
@@ -206,6 +224,40 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 }
 
 
+
+void LZWcode(string a,string s)
+{
+    //memset(&result,0,sizeof(int));
+    string W,K;
+    for(long i=0;i<loc;i++)
+    {
+        string s1;
+        s1=s[i];//将单个字符转换为字符串
+        dictionary[s1]=i+1;
+    }
+    W=a[0];
+    loc+=1;
+    for(int i=0;i<len-1;i++)
+    {
+        K=a[i+1];
+        string firstT=W;
+        string secontT=W;
+        if(dictionary.count(firstT.append(K))!=0)//map的函数count(n),返回的是map容器中出现n的次数
+            W=firstT;
+        else
+        {
+            result.push_back(dictionary[W]);
+            dictionary[secontT.append(K)]=loc++;
+            W=K;
+        }
+    }
+    if(!W.empty())
+        result.push_back(dictionary[W]);
+    for(int i=0;i<result.size();i++)
+        cout<<result[i];
+	//send out table
+	//send out message
+}
 
 
 
